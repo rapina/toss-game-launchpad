@@ -30,6 +30,7 @@ title ──▶ game ──▶ ranking ──▶ (retry → game │ menu → ti
 - [기술 스택](#기술-스택)
 - [디렉토리 구조](#디렉토리-구조)
 - [핵심 개념](#핵심-개념)
+- [테스트](#테스트)
 - [스모크 테스트](#스모크-테스트)
 - [플랫폼 출시](#플랫폼-출시)
 - [다국어 · 오디오 · 에셋](#다국어--오디오--에셋)
@@ -72,6 +73,7 @@ npm run dev         # 브라우저에서 직접 확인
 |--------|------|
 | `npm run dev` | Vite 개발 서버 |
 | `npx tsc -b` | 타입 체크만 (코드 수정 후 기본 검증) |
+| `npm test` | Vitest 유닛 테스트 (`test:watch`로 워치 모드) |
 | `npm run smoke` | 헤드리스 스모크 테스트 → [스모크 테스트](#스모크-테스트) |
 | `npm run build` | 웹 프로덕션 빌드 (`dist/`) |
 | `npm run build:cap` | Capacitor용 빌드 (상대 경로 base) |
@@ -228,6 +230,20 @@ export const APP_CONFIG = {
 - **전면** — 게임오버 시 `App.tsx`가 플레이 카운트를 세서 N판마다 표시
 - **리워드** — `adAdapter.showRewardedAd('default')` → `Promise<boolean>`, 앱 시작 시 프리로드
 - **IAP** — `useEntitlement('remove_ads')` 훅으로 어느 컴포넌트에서든 소유권 구독
+
+## 테스트
+
+3단 검증 체계로 에이전트/CI가 테스트를 건너뛸 수 없게 설계되어 있습니다.
+
+| 단계 | 도구 | 실행 시점 |
+|------|------|----------|
+| 유닛 테스트 | Vitest (`npm test`) | 로직 변경 시. 순수 로직(`records`, `logicRng`, i18n 키 패리티)의 샘플 테스트 포함 |
+| Stop 훅 | `scripts/test-gate.mjs` | Claude Code 에이전트가 턴을 끝내려 할 때 자동으로 유닛 테스트를 재실행 — 빨간 상태면 종료가 차단되고 실패 내역이 에이전트에게 전달됨 |
+| CI | GitHub Actions (`.github/workflows/ci.yml`) | push/PR마다 `tsc` + 유닛 테스트 + 스모크 실행, 스모크 스크린샷 아티팩트 업로드 |
+
+테스트 작성 규칙: 규칙·점수·경제 등 Pixi/DOM 없이 표현 가능한 로직은 `src/game/` 아래
+순수 모듈로 두고 `*.test.ts`를 같은 위치에 작성합니다. localStorage는 테스트 셋업
+([`src/test/setup.ts`](src/test/setup.ts))이 인메모리 구현으로 대체합니다.
 
 ## 스모크 테스트
 

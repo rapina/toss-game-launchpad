@@ -28,6 +28,7 @@ npm run smoke        # 샘플 게임이 헤드리스로 한 판 완주하면 OK
 ## 3. 게임 구현 (코드 — 에이전트 위임 가능)
 
 - [ ] `src/game/<MyGame>.ts` — `GameRuntime`(src/game/types.ts) 구현.
+      순수 로직(규칙·점수·경제)은 별도 모듈로 분리하고 `*.test.ts` 작성 (`npm test`).
       랜덤은 반드시 `logicRandom()` 사용 (스모크 테스트의 재현성 전제).
 - [ ] `src/components/GameScreen.tsx` — `new SampleGame()`을 새 런타임으로 교체.
 - [ ] `src/game/SampleGame.ts` 삭제.

@@ -20,6 +20,8 @@
     "toss:dev": "cross-env VITE_PLATFORM=toss npx granite dev",
     "toss:build": "cross-env VITE_PLATFORM=toss tsc -b && cross-env VITE_PLATFORM=toss npx ait build",
     "smoke": "node scripts/smoke.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "new-game": "node scripts/new-game.js"
   },
   "dependencies": {
@@ -43,6 +45,7 @@
     "cross-env": "^10.1.0",
     "playwright-core": "^1.60.0",
     "typescript": "~5.6.2",
-    "vite": "^6.0.1"
+    "vite": "^6.0.1",
+    "vitest": "^4.1.10"
   }
 }

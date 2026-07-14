@@ -27,6 +27,9 @@ When a change meaningfully shifts design, update `GDD.md` in the same turn.
 ```bash
 npm run dev              # Vite dev server
 npx tsc -b               # Type-check only — run after most code changes
+npm test                 # Vitest unit tests — run after logic changes.
+                         # A Stop hook re-runs these and blocks the turn
+                         # from ending while they are red.
 npm run smoke            # Headless run of the game; fails on console errors.
                          # Run after gameplay changes. Outputs smoke.png +
                          # smoke-result.json (both gitignored).
@@ -80,16 +83,30 @@ npm run new-game -- --id com.studio.x --name "X" --slug x --display "엑스"
 - **Adding an IAP product**: extend `IapProductId` in `src/iap/types.ts` and the
   SKU tables in `src/iap/constants.ts`.
 - **Never change `STORAGE_PREFIX`** after a game ships — it orphans player data.
+- **Pure logic gets unit tests.** Rules, scoring, economy, state machines —
+  anything expressible without Pixi/DOM — lives in plain modules under
+  `src/game/` with a co-located `*.test.ts`. Existing tests
+  (`records.test.ts`, `logicRng.test.ts`, `translations.test.ts`) show the
+  house pattern. When you add a translation-domain file, mirror the
+  locale-parity test for it.
 - House style: 4-space indent, no semicolons in TS/TSX, named exports for utilities.
 
 ## Verification Loop (agents: do this before reporting done)
 
 1. `npx tsc -b` — must pass after any code change.
-2. `npm run smoke` — after gameplay/runtime changes. It boots the dev server,
+2. `npm test` — must pass after any logic change; add/update tests in the same
+   turn as the code they cover. A Stop hook (`scripts/test-gate.mjs`) re-runs
+   the suite when you try to end the turn and blocks you while it is red — do
+   not disable the hook or delete failing tests to get past it; fix the code
+   or fix the test's expectation if the design genuinely changed.
+3. `npm run smoke` — after gameplay/runtime changes. It boots the dev server,
    plays a seeded run headlessly, and fails on any console/page error.
    Inspect `smoke-result.json` (final state, GameResult) and `smoke.png`
    (visual snapshot) when debugging.
-3. `npm run build` — when assets, CSS, Capacitor or Vite config changed.
+4. `npm run build` — when assets, CSS, Capacitor or Vite config changed.
+
+CI (`.github/workflows/ci.yml`) runs tsc + unit tests + smoke on every push,
+so anything skipped locally fails on GitHub.
 
 The smoke driver blind-clicks the canvas. If the game needs smarter input
 (menus, drag gestures), extend the driver loop in `scripts/smoke.mjs` — keep
