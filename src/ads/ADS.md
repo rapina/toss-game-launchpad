@@ -1,54 +1,68 @@
 # Ads Integration Guide
 
-Ad integration for **DEAD HAND**, the Texas Hold'em prison roguelike.
+Ad integration notes for games built on this template.
 
 ## Structure
 
 ```text
 src/ads/
-  constants.ts   # AD_BANNER_HEIGHT, shared ad constants
-  types.ts       # AdAdapter interface
-  index.ts       # Platform adapter selection
+  constants.ts   # AD_BANNER_HEIGHT, INTERSTITIAL_INTERVAL
+  types.ts       # AdAdapter interface + RewardedAdPurpose union
+  index.ts       # Platform adapter selection (__PLATFORM__)
   tossAd.ts      # Toss In-App Ads adapter
   defaultAd.ts   # Capacitor / AdMob adapter
-  webAd.ts       # Web fallback adapter
+  webAd.ts       # Web fallback adapter (dummy modal)
 ```
 
-## Ad Purposes
+## Ad Surfaces
 
-- **Banner**: persistent bottom banner in `MobileFrame`.
-- **Third Eye**: rewarded full-screen ad for a cheating / information feature.
-- **Endless unlock**: rewarded ad gate for entering Endless mode when the entitlement is not owned.
+- **Banner**: persistent bottom banner in `MobileFrame`. Toggled per game via
+  `APP_CONFIG.showAdBanner`; hidden at runtime by the `remove_ads` entitlement.
+- **Interstitial**: shown by `App.tsx` every `APP_CONFIG.interstitialEveryNGames`
+  finished games.
+- **Rewarded**: `showRewardedAd(purpose)` → `Promise<boolean>` (reward earned).
+  The template ships a single `'default'` purpose — extend `RewardedAdPurpose`
+  in `types.ts` per game (e.g. `'revive' | 'double_reward'`) and add the
+  matching ids in both adapters.
 
-## Toss In-App Ads 2.0
+## Toss In-App Ads
 
-| Purpose | Format | Constant | ID |
-|---|---|---|---|
-| Banner | Banner | `BANNER_AD_GROUP_ID` | `ait.v2.live.b2f0565ad8074d3b` |
-| Third Eye | Full-screen / rewarded fallback | `THIRD_EYE_AD_GROUP_ID` | `ait.v2.live.5bbf5d06abbf4703` |
-| Endless unlock | Rewarded | `ENDLESS_UNLOCK_AD_GROUP_ID` | `ait.v2.live.4adff3878b1149e5` |
+Register ad groups in the Apps-in-Toss console, then replace the `TODO_`
+constants in `tossAd.ts`:
 
-Toss does not provide a separate universal rewarded full-screen format for every use case. Where the SDK lacks a reward callback, the adapter treats sufficient impression time as the reward condition.
+| Purpose | Format | Constant |
+|---|---|---|
+| Banner | Banner | `BANNER_AD_GROUP_ID` |
+| Rewarded (default) | Full-screen / rewarded | `REWARDED_AD_GROUP_ID` |
 
-## AdMob Android
+Toss does not provide a reward callback for every full-screen format. Where
+`userEarnedReward` never fires, the adapter treats sufficient impression time
+(3s min-watch) as the reward condition — see `showRewardedAd` in `tossAd.ts`.
+There is no standalone Toss interstitial: `preloadInterstitial` /
+`showInterstitial` are no-ops on Toss, and interstitial-style inventory goes
+through the rewarded path.
 
-Current values are Google test IDs and must be replaced before store release.
+## AdMob (Android)
+
+Current values in `defaultAd.ts` are **Google's official test IDs** — safe to
+ship in pre-release builds, must be replaced before store release:
 
 | Purpose | Constant | Test ID |
 |---|---|---|
 | Banner | `BANNER_ID` | `ca-app-pub-3940256099942544/6300978111` |
 | Interstitial | `INTERSTITIAL_ID` | `ca-app-pub-3940256099942544/1033173712` |
-| Third Eye rewarded | `THIRD_EYE_REWARDED_ID` | `ca-app-pub-3940256099942544/5354046379` |
-| Endless unlock rewarded | `ENDLESS_UNLOCK_REWARDED_ID` | `ca-app-pub-3940256099942544/5224354917` |
+| Rewarded | `REWARDED_ID` | `ca-app-pub-3940256099942544/5224354917` |
 | App ID | `AndroidManifest.xml` | `ca-app-pub-3940256099942544~3347511713` |
 
 ## Rewarded Ad Behavior
 
-- Preload Third Eye and Endless ads during app startup where possible.
-- After a rewarded ad finishes or fails, immediately attempt to preload the next instance.
-- Reward only when the platform reports a reward event or the adapter's fallback impression rule is satisfied.
-- If a reward is not granted, keep the original feature locked or on cooldown.
-- Show loading UI while waiting for preload / show calls.
+- Preload rewarded inventory during app startup (`App.tsx` does this).
+- After a rewarded ad finishes or fails, immediately preload the next instance
+  (the Toss adapter re-warms automatically in `finish()`).
+- Reward only when the platform reports a reward event or the adapter's
+  fallback impression rule is satisfied.
+- If a reward is not granted, keep the gated feature locked or on cooldown.
+- Show loading UI while a non-preloaded `showRewardedAd` call pends.
 
 ## Toss Guidelines
 
@@ -56,27 +70,27 @@ Current values are Google test IDs and must be replaced before store release.
 - Do not block payment or authentication flows with ads.
 - Do not alter SDK click / impression event structure.
 - Keep ad container width matched to screen width.
-- Banner height is reserved at 96px in this project.
+- Banner height is reserved at 96px (`AD_BANNER_HEIGHT`).
 
 ## Layout Contract
 
-`MobileFrame` reserves a fixed bottom ad slot:
+`MobileFrame` reserves a fixed bottom ad slot when `APP_CONFIG.showAdBanner`
+is true:
 
 ```text
 MobileFrame
-  content area  # game / title / reward screens
+  content area  # title / game / ranking screens
   ad-banner     # 96px, flex-shrink: 0
 ```
 
-Game UI should not assume the full viewport height is available. The playable 9:16 content area lives above the banner.
+Game UI should not assume the full viewport height is available — the playable
+content area lives above the banner.
 
 ## Production Checklist
 
-- [x] Toss banner ID configured.
-- [x] Toss Third Eye full-screen ID configured.
-- [x] Toss Endless rewarded ID configured.
-- [ ] Replace AdMob Third Eye test ID with production rewarded ID.
-- [ ] Replace AdMob Endless test ID with production rewarded ID.
-- [ ] Replace AdMob app ID with production app ID.
-- [ ] Test banner, full-screen, reward, failure, and preload behavior on a real Android device.
+- [ ] Toss banner ad group id configured (`tossAd.ts`).
+- [ ] Toss rewarded ad group id configured (`tossAd.ts`).
+- [ ] Replace AdMob unit test IDs with production IDs (`defaultAd.ts`).
+- [ ] Replace AdMob app ID in `AndroidManifest.xml`.
+- [ ] Test banner, interstitial, reward, failure and preload behavior on a real Android device.
 - [ ] Verify Toss console QR / device testing flow before release.
