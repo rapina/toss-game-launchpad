@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run smoke:*)",
+      "Bash(npm run new-game:*)",
+      "Bash(node scripts/smoke.mjs:*)",
+      "Bash(node scripts/new-game.js:*)"
+    ]
+  }
+}

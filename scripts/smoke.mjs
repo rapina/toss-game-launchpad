@@ -1,0 +1,148 @@
+/**
+ * Smoke test — boots the dev server, runs the game headlessly and reports
+ * whether a full run completes without console errors.
+ *
+ *   node scripts/smoke.mjs [seed] [timeoutMs]
+ *
+ * What it does:
+ *   1. starts `npm run dev` on port 4173
+ *   2. opens /autoplay.html?seed=<seed> (GameScreen only, seeded RNG)
+ *   3. clicks around the canvas until globalThis.__gameState.over is true
+ *   4. saves a screenshot to smoke.png, prints a JSON summary
+ *
+ * Exit code 0 = game mounted, finished a run, zero page/console errors.
+ * Designed to be run by coding agents after every gameplay change.
+ * Requires a local Chrome install (or set CHROME=<path to chrome.exe>).
+ */
+import { spawn } from 'node:child_process'
+import { writeFileSync } from 'node:fs'
+import { setTimeout as delay } from 'node:timers/promises'
+import { chromium } from 'playwright-core'
+
+const DEV_PORT = 4173
+const SEED = process.argv[2] || '1'
+const TIMEOUT_MS = Number(process.argv[3] || '90000')
+const URL = `http://127.0.0.1:${DEV_PORT}/autoplay.html?seed=${encodeURIComponent(SEED)}`
+
+async function killProcessTree(proc) {
+    if (!proc?.pid) return
+    if (process.platform === 'win32') {
+        await new Promise((resolve) => {
+            const killer = spawn('taskkill', ['/pid', String(proc.pid), '/t', '/f'], { stdio: 'ignore', shell: true })
+            killer.on('exit', resolve)
+            killer.on('error', resolve)
+        })
+        return
+    }
+    proc.kill('SIGTERM')
+}
+
+async function waitForServer() {
+    const started = Date.now()
+    while (Date.now() - started < 60000) {
+        try {
+            const r = await fetch(`http://127.0.0.1:${DEV_PORT}/`)
+            if (r.ok) return
+        } catch { /* not up yet */ }
+        await delay(500)
+    }
+    throw new Error('dev server did not start in time')
+}
+
+async function launchBrowser() {
+    const opts = { headless: true, args: ['--disable-gpu', '--no-sandbox'] }
+    if (process.env.CHROME) {
+        return chromium.launch({ ...opts, executablePath: process.env.CHROME })
+    }
+    try {
+        return await chromium.launch({ ...opts, channel: 'chrome' })
+    } catch {
+        return chromium.launch({
+            ...opts,
+            executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe',
+        })
+    }
+}
+
+async function main() {
+    const dev = spawn('npm', ['run', 'dev', '--', '--host', '127.0.0.1', '--port', String(DEV_PORT), '--force'], {
+        cwd: process.cwd(),
+        stdio: 'pipe',
+        shell: true,
+    })
+    let devLog = ''
+    dev.stdout.on('data', (b) => { devLog += String(b) })
+    dev.stderr.on('data', (b) => { devLog += String(b) })
+
+    const consoleErrors = []
+    const pageErrors = []
+
+    try {
+        await waitForServer()
+        const browser = await launchBrowser()
+        const page = await browser.newPage({ viewport: { width: 450, height: 800 } })
+        page.on('console', (msg) => {
+            if (msg.type() === 'error') consoleErrors.push(msg.text())
+        })
+        page.on('pageerror', (err) => pageErrors.push(String(err)))
+
+        await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 60000 })
+        await page.waitForSelector('canvas', { timeout: 30000 })
+
+        // Blind-click around the canvas until the run ends. Games with menus /
+        // multi-step input may need a smarter driver — extend here per game.
+        const started = Date.now()
+        let state = null
+        while (Date.now() - started < TIMEOUT_MS) {
+            const box = await page.locator('canvas').boundingBox().catch(() => null)
+            if (box) {
+                const x = box.x + box.width * (0.1 + Math.random() * 0.8)
+                const y = box.y + box.height * (0.1 + Math.random() * 0.8)
+                await page.mouse.click(x, y).catch(() => {})
+            }
+            state = await page.evaluate(() => globalThis.__gameState ?? null)
+            if (state?.over) break
+            await delay(150)
+        }
+        // GameScreen defers onGameOver briefly for the runtime's game-over
+        // presentation — wait it out so __gameResult is populated.
+        await delay(1500)
+        const result = await page.evaluate(() => globalThis.__gameResult ?? null)
+        await page.screenshot({ path: 'smoke.png' }).catch(() => {})
+        await browser.close()
+
+        const summary = {
+            seed: SEED,
+            mounted: state !== null,
+            finished: Boolean(state?.over),
+            finalState: state,
+            gameResult: result,
+            consoleErrors,
+            pageErrors,
+        }
+        writeFileSync('smoke-result.json', JSON.stringify(summary, null, 2), 'utf-8')
+        console.log(JSON.stringify(summary, null, 2))
+
+        if (!summary.mounted) {
+            console.error('FAIL: game never exposed __gameState (mount failed?)')
+            console.error(devLog.split(/\r?\n/).slice(-30).join('\n'))
+            process.exit(1)
+        }
+        if (pageErrors.length > 0 || consoleErrors.length > 0) {
+            console.error('FAIL: page/console errors during the run')
+            process.exit(1)
+        }
+        if (!summary.finished) {
+            console.error('FAIL: run did not reach game over within timeout')
+            process.exit(1)
+        }
+        console.log('SMOKE OK')
+    } finally {
+        await killProcessTree(dev)
+    }
+}
+
+main().catch((e) => {
+    console.error(e?.stack || String(e))
+    process.exit(1)
+})
