@@ -4,7 +4,7 @@ Guidance for Claude Code / agent sessions working in this repository.
 
 ## What This Is
 
-A **portrait-mobile game shell template** (Sputnik Workshop). It ships the
+A **portrait-mobile game shell template**. It ships the
 platform plumbing — Toss (Apps-in-Toss/Granite) + Android (Capacitor) builds,
 ads, IAP, leaderboard, audio, i18n, local records — so a new game only has to
 implement gameplay. The screen flow is fixed:
