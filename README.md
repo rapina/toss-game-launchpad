@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🚀 toss-game-launchpad
+# toss-game-launchpad
 
 **포트레이트(9:16) 모바일 게임을 Toss와 Google Play에 동시 출시하는 셸 템플릿**
 
@@ -22,31 +22,31 @@ title ──▶ game ──▶ ranking ──▶ (retry → game │ menu → ti
 
 ---
 
-## 📑 목차
+## 목차
 
-- [특징](#-특징)
-- [빠른 시작](#-빠른-시작)
-- [명령어](#-명령어)
-- [기술 스택](#-기술-스택)
-- [디렉토리 구조](#-디렉토리-구조)
-- [핵심 개념](#-핵심-개념)
-- [스모크 테스트](#-스모크-테스트)
-- [플랫폼 출시](#-플랫폼-출시)
-- [다국어 · 오디오 · 에셋](#-다국어--오디오--에셋)
-- [문서](#-문서)
+- [특징](#특징)
+- [빠른 시작](#빠른-시작)
+- [명령어](#명령어)
+- [기술 스택](#기술-스택)
+- [디렉토리 구조](#디렉토리-구조)
+- [핵심 개념](#핵심-개념)
+- [스모크 테스트](#스모크-테스트)
+- [플랫폼 출시](#플랫폼-출시)
+- [다국어 · 오디오 · 에셋](#다국어--오디오--에셋)
+- [문서](#문서)
 
-## ✨ 특징
+## 특징
 
-- 🎯 **게임 로직만 교체** — 셸과 게임의 접점은 `GameRuntime` 인터페이스 하나
-- 🏪 **듀얼 플랫폼** — 한 코드베이스로 Toss(Apps-in-Toss) `.ait` + Android AAB 빌드
-- 💰 **수익화 내장** — 배너(옵션) / 전면(N판마다) / 리워드 광고 + IAP(`remove_ads`) 배선 완료
-- 🏆 **리더보드** — Toss 게임센터 자동 연동, 로컬 톱10 폴백
-- 🌍 **4개 언어** — ko / en / zh / ja (i18next)
-- 🔊 **오디오 시스템** — BGM 크로스페이드·덕킹, WebAudio 합성 SFX (파일 불필요)
-- 🤖 **에이전트 친화** — 시드 RNG + 헤드리스 스모크 테스트로 AI 코딩 에이전트가 스스로 검증
-- ⚡ **1분 초기화** — `npm run new-game` 한 방으로 앱 아이덴티티 전체 치환
+- **게임 로직만 교체** — 셸과 게임의 접점은 `GameRuntime` 인터페이스 하나
+- **듀얼 플랫폼** — 한 코드베이스로 Toss(Apps-in-Toss) `.ait` + Android AAB 빌드
+- **수익화 내장** — 배너(옵션) / 전면(N판마다) / 리워드 광고 + IAP(`remove_ads`) 배선 완료
+- **리더보드** — Toss 게임센터 자동 연동, 로컬 톱10 폴백
+- **4개 언어** — ko / en / zh / ja (i18next)
+- **오디오 시스템** — BGM 크로스페이드·덕킹, WebAudio 합성 SFX (파일 불필요)
+- **에이전트 친화** — 시드 RNG + 헤드리스 스모크 테스트로 AI 코딩 에이전트가 스스로 검증
+- **1분 초기화** — `npm run new-game` 한 방으로 앱 아이덴티티 전체 치환
 
-## 🚀 빠른 시작
+## 빠른 시작
 
 ```bash
 # 1) 템플릿 복제
@@ -66,13 +66,13 @@ npm run dev         # 브라우저에서 직접 확인
 
 > 이후 절차(아이콘, 광고 ID, IAP SKU, 키스토어, 콘솔 등록)는 [`NEW_GAME.md`](NEW_GAME.md) 체크리스트를 따르세요.
 
-## ⌨️ 명령어
+## 명령어
 
 | 명령어 | 설명 |
 |--------|------|
 | `npm run dev` | Vite 개발 서버 |
 | `npx tsc -b` | 타입 체크만 (코드 수정 후 기본 검증) |
-| `npm run smoke` | 헤드리스 스모크 테스트 → [스모크 테스트](#-스모크-테스트) |
+| `npm run smoke` | 헤드리스 스모크 테스트 → [스모크 테스트](#스모크-테스트) |
 | `npm run build` | 웹 프로덕션 빌드 (`dist/`) |
 | `npm run build:cap` | Capacitor용 빌드 (상대 경로 base) |
 | `npm run android:deploy` | 디버그 빌드 → `adb install` (연결된 기기) |
@@ -83,7 +83,7 @@ npm run dev         # 브라우저에서 직접 확인
 | `npm run bump-version` | package.json patch 버전 + Android versionCode 증가 |
 | `npm run new-game -- --id … --name … --slug … --display …` | 아이덴티티 일괄 치환 (복제 직후 1회) |
 
-## 🧱 기술 스택
+## 기술 스택
 
 | 영역 | 기술 | 용도 |
 |------|------|------|
@@ -98,7 +98,7 @@ npm run dev         # 브라우저에서 직접 확인
 | 검증 | playwright-core | 헤드리스 스모크 테스트 |
 | 폰트 | Galmuri11 / Galmuri14 | 픽셀 폰트 (DOM + Pixi 공용, 프리로드) |
 
-## 📁 디렉토리 구조
+## 디렉토리 구조
 
 <details>
 <summary><b>전체 트리 펼치기</b> (★ = 새 게임을 만들 때 반드시 만지는 파일)</summary>
@@ -159,7 +159,7 @@ npm run dev         # 브라우저에서 직접 확인
 
 </details>
 
-## 🎮 핵심 개념
+## 핵심 개념
 
 ### GameRuntime 계약
 
@@ -184,7 +184,7 @@ interface GameCallbacks {
 2. [`GameScreen.tsx`](src/components/GameScreen.tsx)의 `new SampleGame()`을 `new MyGame()`으로 교체
 3. `src/game/SampleGame.ts` 삭제
 
-> ⚠️ **규칙**: 게임플레이 랜덤은 반드시 `logicRandom()`([`logicRng.ts`](src/game/logicRng.ts)) 사용.
+> **규칙**: 게임플레이 랜덤은 반드시 `logicRandom()`([`logicRng.ts`](src/game/logicRng.ts)) 사용.
 > `?seed=N`으로 런이 재현되어야 스모크 테스트와 밸런스 검증이 성립합니다.
 > 런타임 내부에서 플랫폼/광고 코드를 직접 호출하지 마세요 — GameScreen을 통해 콜백으로 연결합니다.
 
@@ -219,7 +219,7 @@ export const APP_CONFIG = {
 }
 ```
 
-> ⚠️ `STORAGE_PREFIX`는 기록·설정·구매내역의 localStorage 키에 쓰이므로 출시 후 바꾸면
+> `STORAGE_PREFIX`는 기록·설정·구매내역의 localStorage 키에 쓰이므로 출시 후 바꾸면
 > 플레이어 데이터가 전부 유실됩니다. `new-game` 스크립트가 slug로 자동 설정합니다.
 
 ### 수익화 기본 배선
@@ -229,7 +229,7 @@ export const APP_CONFIG = {
 - **리워드** — `adAdapter.showRewardedAd('default')` → `Promise<boolean>`, 앱 시작 시 프리로드
 - **IAP** — `useEntitlement('remove_ads')` 훅으로 어느 컴포넌트에서든 소유권 구독
 
-## 🧪 스모크 테스트
+## 스모크 테스트
 
 에이전트/CI가 사람 없이 "게임이 실제로 도는지"를 판정합니다. `npm run smoke`:
 
@@ -243,10 +243,10 @@ export const APP_CONFIG = {
 메뉴 조작·드래그가 필요한 게임은 [`scripts/smoke.mjs`](scripts/smoke.mjs)의 클릭 루프를 확장하되
 종료 조건 `__gameState.over` 계약은 유지합니다.
 
-## 📦 플랫폼 출시
+## 플랫폼 출시
 
 <details>
-<summary><b>🤖 Android (Google Play)</b></summary>
+<summary><b>Android (Google Play)</b></summary>
 
 1. 키스토어 생성 → `android/keystore.properties` 작성 (gitignore 대상)
 2. AdMob 앱 등록 → `AndroidManifest.xml`의 `APPLICATION_ID` 교체 (현재 테스트 ID)
@@ -256,7 +256,7 @@ export const APP_CONFIG = {
 </details>
 
 <details>
-<summary><b>💙 Toss (Apps-in-Toss)</b></summary>
+<summary><b>Toss (Apps-in-Toss)</b></summary>
 
 1. Toss 콘솔에 앱 등록 → [`granite.config.ts`](granite.config.ts)(appName, displayName, icon URL), `.granite/app.json` 갱신
 2. 광고 그룹 발급 → [`src/ads/tossAd.ts`](src/ads/tossAd.ts)의 `TODO_` ID 교체
@@ -266,7 +266,7 @@ export const APP_CONFIG = {
 
 </details>
 
-## 🌐 다국어 · 오디오 · 에셋
+## 다국어 · 오디오 · 에셋
 
 - **i18n** — [`src/i18n/translations.ts`](src/i18n/translations.ts)는 셸 UI 문자열. 게임 콘텐츠 문자열은
   도메인별 파일로 분리해 `i18n/index.ts`의 resources 병합부에 추가. 언어 자동 감지 + 타이틀에서 수동 전환
@@ -275,7 +275,7 @@ export const APP_CONFIG = {
 - **SFX** — [`SFXSynth.ts`](src/audio/SFXSynth.ts)가 WebAudio로 효과음 합성 — 파일 없이 동작
 - **아이콘** — 1024px 원본 제작 후 `scripts/gen_app_icon.py`로 Android mipmap + 웹 아이콘 세트 생성
 
-## 📚 문서
+## 문서
 
 | 파일 | 내용 |
 |------|------|
