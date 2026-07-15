@@ -59,6 +59,7 @@ const ROOT = path.resolve(__dirname, '..')
 /** Files that carry the hardcoded identity. */
 const TARGETS = [
     'package.json',
+    'package-lock.json',
     'capacitor.config.ts',
     'granite.config.ts',
     '.granite/app.json',
@@ -122,6 +123,18 @@ const pkgFile = path.join(ROOT, 'package.json')
 const pkg = JSON.parse(fs.readFileSync(pkgFile, 'utf-8'))
 pkg.version = '0.0.1'
 fs.writeFileSync(pkgFile, JSON.stringify(pkg, null, 2) + '\n', 'utf-8')
+
+const lockFile = path.join(ROOT, 'package-lock.json')
+if (fs.existsSync(lockFile)) {
+    const lock = JSON.parse(fs.readFileSync(lockFile, 'utf-8'))
+    lock.name = slug
+    lock.version = '0.0.1'
+    if (lock.packages?.['']) {
+        lock.packages[''].name = slug
+        lock.packages[''].version = '0.0.1'
+    }
+    fs.writeFileSync(lockFile, JSON.stringify(lock, null, 2) + '\n', 'utf-8')
+}
 
 const gradleFile = path.join(ROOT, 'android/app/build.gradle')
 let gradle = fs.readFileSync(gradleFile, 'utf-8')
