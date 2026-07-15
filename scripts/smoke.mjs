@@ -34,7 +34,15 @@ async function killProcessTree(proc) {
         })
         return
     }
-    proc.kill('SIGTERM')
+    // `dev` is spawned detached, so it leads its own process group. Signal the
+    // whole group (negative pid) — a bare proc.kill only hits the `sh -c`
+    // wrapper and leaves vite/esbuild alive, whose open stdio pipes keep this
+    // process from ever exiting (the CI hang this script used to cause).
+    try {
+        process.kill(-proc.pid, 'SIGKILL')
+    } catch {
+        try { proc.kill('SIGKILL') } catch { /* already gone */ }
+    }
 }
 
 async function waitForServer() {
@@ -69,6 +77,9 @@ async function main() {
         cwd: process.cwd(),
         stdio: 'pipe',
         shell: true,
+        // Own process group so killProcessTree can take down vite + its
+        // children in one signal (see killProcessTree). No effect on Windows.
+        detached: process.platform !== 'win32',
     })
     let devLog = ''
     dev.stdout.on('data', (b) => { devLog += String(b) })
@@ -126,23 +137,29 @@ async function main() {
         if (!summary.mounted) {
             console.error('FAIL: game never exposed __gameState (mount failed?)')
             console.error(devLog.split(/\r?\n/).slice(-30).join('\n'))
-            process.exit(1)
+            return 1
         }
         if (pageErrors.length > 0 || consoleErrors.length > 0) {
             console.error('FAIL: page/console errors during the run')
-            process.exit(1)
+            return 1
         }
         if (!summary.finished) {
             console.error('FAIL: run did not reach game over within timeout')
-            process.exit(1)
+            return 1
         }
         console.log('SMOKE OK')
+        return 0
     } finally {
         await killProcessTree(dev)
     }
 }
 
-main().catch((e) => {
-    console.error(e?.stack || String(e))
-    process.exit(1)
-})
+// Always exit explicitly. The dev server keeps stdio pipes open even after it
+// is signalled, so relying on natural event-loop drain would hang the process
+// forever (previously stalled CI for ~2h before it was cancelled).
+main()
+    .then((code) => process.exit(code))
+    .catch((e) => {
+        console.error(e?.stack || String(e))
+        process.exit(1)
+    })
