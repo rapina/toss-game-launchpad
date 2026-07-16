@@ -7,8 +7,10 @@ const STORAGE_KEY = `${STORAGE_PREFIX}-locale`
 const SUPPORTED: Locale[] = ['ko', 'en', 'zh', 'ja']
 
 function detectLocale(): Locale {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored && SUPPORTED.includes(stored as Locale)) return stored as Locale
+    try {
+        const stored = localStorage.getItem(STORAGE_KEY)
+        if (stored && SUPPORTED.includes(stored as Locale)) return stored as Locale
+    } catch { /* Arcade sandbox intentionally denies storage access. */ }
 
     const nav = navigator.language?.toLowerCase() ?? ''
     if (nav.startsWith('ko')) return 'ko'
@@ -38,7 +40,7 @@ i18n.use(initReactI18next).init({
 /** Change locale and persist */
 export function setLocale(locale: Locale): void {
     i18n.changeLanguage(locale)
-    localStorage.setItem(STORAGE_KEY, locale)
+    try { localStorage.setItem(STORAGE_KEY, locale) } catch { /* Host owns Arcade locale persistence. */ }
 }
 
 export function getLocale(): Locale {

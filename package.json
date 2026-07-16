@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "build:web": "tsc -b && vite build",
+    "build:arcade": "cross-env VITE_DISTRIBUTION=arcade tsc -b && cross-env VITE_DISTRIBUTION=arcade vite build && node scripts/build-release.mjs && node scripts/verify-release.mjs",
+    "verify:arcade": "node scripts/verify-release.mjs",
     "build:debug": "tsc -b && vite build --mode development",
     "build:cap": "cross-env CAPACITOR_BUILD=true tsc -b && cross-env CAPACITOR_BUILD=true vite build",
     "build:cap:debug": "cross-env CAPACITOR_BUILD=true tsc -b && cross-env CAPACITOR_BUILD=true vite build --mode development",

@@ -26,3 +26,8 @@ android/play-service-account.json
 # Smoke test output
 smoke.png
 smoke-result.json
+
+# Arcade release & QA artifacts
+dist-arcade
+smoke-*.png
+*.ait

@@ -26,6 +26,7 @@ export class SampleGame implements GameRuntime {
     private timeLeft = GAME_SECONDS
     private over = false
     private destroyed = false
+    private resizeObs: ResizeObserver | null = null
 
     async mount(container: HTMLElement, callbacks: GameCallbacks): Promise<void> {
         this.callbacks = callbacks
@@ -36,6 +37,8 @@ export class SampleGame implements GameRuntime {
             height: APP_CONFIG.designHeight,
             backgroundColor: 0x101821,
             antialias: true,
+            resolution: Math.min(window.devicePixelRatio || 1, 3),
+            autoDensity: true,
         })
         // mount() may race destroy() when React unmounts during init.
         if (this.destroyed) {
@@ -44,9 +47,20 @@ export class SampleGame implements GameRuntime {
         }
         this.app = app
 
-        app.canvas.style.width = '100%'
-        app.canvas.style.height = '100%'
         container.appendChild(app.canvas)
+        // Uniform-scale letterbox: the design scene must never stretch,
+        // whatever aspect the host container has (arcade, desktop, tablet).
+        const fit = () => {
+            const cw = container.clientWidth
+            const ch = container.clientHeight
+            if (!cw || !ch) return
+            const scale = Math.min(cw / APP_CONFIG.designWidth, ch / APP_CONFIG.designHeight)
+            app.canvas.style.width = `${APP_CONFIG.designWidth * scale}px`
+            app.canvas.style.height = `${APP_CONFIG.designHeight * scale}px`
+        }
+        fit()
+        this.resizeObs = new ResizeObserver(fit)
+        this.resizeObs.observe(container)
 
         this.scoreText = new Text({
             text: 'SCORE 0',
@@ -117,6 +131,8 @@ export class SampleGame implements GameRuntime {
 
     destroy(): void {
         this.destroyed = true
+        this.resizeObs?.disconnect()
+        this.resizeObs = null
         if (!this.app) return
         this.app.destroy(true, { children: true })
         this.app = null
