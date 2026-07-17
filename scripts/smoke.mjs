@@ -15,7 +15,32 @@
  * Requires a local Chrome install (or set CHROME=<path to chrome.exe>).
  */
 import { spawn } from 'node:child_process'
-import { writeFileSync } from 'node:fs'
+import { writeFileSync, readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { join } from 'node:path'
+
+// 검증 증거를 코드 상태에 바인딩한다: 잠금 게이트(prepare-editorial.mjs)가
+// 같은 방식으로 해시를 재계산해 소스가 바뀐 뒤의 낡은 증거를 거부한다.
+function sourceHash(root = '.') {
+    const files = []
+    const walk = (dir) => {
+        for (const entry of readdirSync(dir, { withFileTypes: true })) {
+            const full = join(dir, entry.name)
+            if (entry.isDirectory()) walk(full)
+            else if (entry.isFile()) files.push(full)
+        }
+    }
+    for (const dir of ['src', 'public']) if (existsSync(join(root, dir))) walk(join(root, dir))
+    for (const file of ['index.html', 'package.json', 'vite.config.ts']) if (existsSync(join(root, file))) files.push(join(root, file))
+    const hash = createHash('sha256')
+    for (const file of files.sort()) {
+        hash.update(file)
+        hash.update('\n')
+        hash.update(readFileSync(file))
+        hash.update('\n')
+    }
+    return hash.digest('hex')
+}
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright-core'
 
@@ -124,6 +149,7 @@ async function main() {
 
         const summary = {
             seed: SEED,
+            sourceHash: sourceHash(),
             mounted: state !== null,
             finished: Boolean(state?.over),
             finalState: state,

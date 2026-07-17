@@ -23,11 +23,8 @@ android/play-service-account.json
 .idea/
 *.iml
 
-# Smoke test output
-smoke.png
-smoke-result.json
+# Smoke evidence (smoke.png, smoke-result.json, smoke-*.png)는 검증 증거이므로 커밋한다.
 
 # Arcade release & QA artifacts
 dist-arcade
-smoke-*.png
 *.ait
