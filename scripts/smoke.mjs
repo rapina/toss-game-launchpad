@@ -143,8 +143,24 @@ async function main() {
         // GameScreen defers onGameOver briefly for the runtime's game-over
         // presentation — wait it out so __gameResult is populated.
         await delay(1500)
-        const result = await page.evaluate(() => globalThis.__gameResult ?? null)
+        let result = await page.evaluate(() => globalThis.__gameResult ?? null)
         await page.screenshot({ path: 'smoke.png' }).catch(() => {})
+
+        // 게임 오버 화면은 화면 탭만으로 결과를 전달하고 새 판을 시작할 수
+        // 있어야 한다. 그려진 버튼이 아니라 실제 동작을 검증한다.
+        let restartVerified = false
+        if (state?.over) {
+            const box = await page.locator('canvas').boundingBox().catch(() => null)
+            if (box) {
+                for (const [fx, fy] of [[0.5, 0.5], [0.5, 0.8], [0.5, 0.92], [0.5, 0.5], [0.5, 0.8], [0.5, 0.92]]) {
+                    await page.mouse.click(box.x + box.width * fx, box.y + box.height * fy).catch(() => {})
+                    await delay(900)
+                    result = result ?? await page.evaluate(() => globalThis.__gameResult ?? null)
+                    const current = await page.evaluate(() => globalThis.__gameState ?? null)
+                    if (result && current && current.over !== true) { restartVerified = true; break }
+                }
+            }
+        }
         await browser.close()
 
         const summary = {
@@ -154,6 +170,7 @@ async function main() {
             finished: Boolean(state?.over),
             finalState: state,
             gameResult: result,
+            restartVerified,
             consoleErrors,
             pageErrors,
         }
@@ -171,6 +188,14 @@ async function main() {
         }
         if (!summary.finished) {
             console.error('FAIL: run did not reach game over within timeout')
+            return 1
+        }
+        if (!summary.gameResult) {
+            console.error('FAIL: game over did not deliver __gameResult to the host')
+            return 1
+        }
+        if (!summary.restartVerified) {
+            console.error('FAIL: tapping the game-over screen did not start a new run')
             return 1
         }
         console.log('SMOKE OK')
