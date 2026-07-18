@@ -17,10 +17,15 @@
 import { spawn } from 'node:child_process'
 import { writeFileSync, readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
 import { createHash } from 'node:crypto'
-import { join } from 'node:path'
+import { join, sep } from 'node:path'
 
 // 검증 증거를 코드 상태에 바인딩한다: 잠금 게이트(prepare-editorial.mjs)가
 // 같은 방식으로 해시를 재계산해 소스가 바뀐 뒤의 낡은 증거를 거부한다.
+// 서사 소유 자산: 잠금 계약에서 라이카 서사 단계만 추가·수정할 수 있는 경로.
+function isNarrativeAsset(path) {
+    return /(^|[\\/])public[\\/]art[\\/]laika-[^\\/]*$/.test(path.split(sep).join('/'))
+}
+
 function sourceHash(root = '.') {
     const files = []
     const walk = (dir) => {
@@ -33,7 +38,9 @@ function sourceHash(root = '.') {
     for (const dir of ['src', 'public']) if (existsSync(join(root, dir))) walk(join(root, dir))
     for (const file of ['index.html', 'package.json', 'vite.config.ts']) if (existsSync(join(root, file))) files.push(join(root, file))
     const hash = createHash('sha256')
-    for (const file of files.sort()) {
+    // 서사 단계가 추가하는 제작자 일러스트는 게임 소스가 아니다. 해시에 넣으면
+    // 서사 뒤에 검증 증거와 설계 검토가 통째로 무효가 되므로 제외한다.
+    for (const file of files.filter((path) => !isNarrativeAsset(path)).sort()) {
         hash.update(file)
         hash.update('\n')
         hash.update(readFileSync(file))
@@ -44,7 +51,9 @@ function sourceHash(root = '.') {
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright-core'
 
-const DEV_PORT = 4173
+// 4173은 아케이드 로컬 서버(arcade/scripts/serve.mjs)가 쓴다. 포트가 겹치면
+// 게이트 스모크가 남의 서버에 붙어 위양성으로 실패한다.
+const DEV_PORT = 4183
 const SEED = process.argv[2] || '1'
 const TIMEOUT_MS = Number(process.argv[3] || '90000')
 const URL = `http://127.0.0.1:${DEV_PORT}/autoplay.html?seed=${encodeURIComponent(SEED)}`
@@ -144,7 +153,7 @@ async function main() {
         // presentation — wait it out so __gameResult is populated.
         await delay(1500)
         let result = await page.evaluate(() => globalThis.__gameResult ?? null)
-        await page.screenshot({ path: 'smoke.png' }).catch(() => {})
+        const screenshot = await page.screenshot().catch(() => null)
 
         // 게임 오버 화면은 화면 탭만으로 결과를 전달하고 새 판을 시작할 수
         // 있어야 한다. 그려진 버튼이 아니라 실제 동작을 검증한다.
@@ -168,14 +177,24 @@ async function main() {
             sourceHash: sourceHash(),
             mounted: state !== null,
             finished: Boolean(state?.over),
-            finalState: state,
-            gameResult: result,
+            resultDelivered: Boolean(result),
             restartVerified,
             consoleErrors,
             pageErrors,
         }
-        writeFileSync('smoke-result.json', JSON.stringify(summary, null, 2), 'utf-8')
-        console.log(JSON.stringify(summary, null, 2))
+        // 증거 파일은 안정 필드만 담는다. 블라인드 드라이버는 실제 벽시계 타이밍으로
+        // 입력하므로 점수·최종 상태 같은 세부는 실행마다 달라진다. 게시 게이트
+        // (publish-game.mjs)는 gate 재실행 뒤 저장소가 더러워지면 중단하므로,
+        // 통과 여부가 같으면 증거를 다시 쓰지 않는다.
+        const serialized = JSON.stringify(summary, null, 2)
+        const existing = existsSync('smoke-result.json')
+            ? readFileSync('smoke-result.json', 'utf-8').trim()
+            : null
+        if (existing !== serialized) {
+            writeFileSync('smoke-result.json', serialized, 'utf-8')
+            if (screenshot) writeFileSync('smoke.png', screenshot)
+        }
+        console.log(serialized)
 
         if (!summary.mounted) {
             console.error('FAIL: game never exposed __gameState (mount failed?)')
@@ -190,7 +209,7 @@ async function main() {
             console.error('FAIL: run did not reach game over within timeout')
             return 1
         }
-        if (!summary.gameResult) {
+        if (!summary.resultDelivered) {
             console.error('FAIL: game over did not deliver __gameResult to the host')
             return 1
         }
