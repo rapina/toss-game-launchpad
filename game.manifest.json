@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "slug": "gametemplate",
+  "appId": "com.example.gametemplate",
+  "version": "0.0.1",
+  "releaseDate": "TODO-YYYY-MM-DD",
+  "title": {
+    "ko": "게임 템플릿",
+    "en": "Game Template"
+  },
+  "tagline": {
+    "ko": "TODO 한 줄 소개",
+    "en": "TODO one line pitch"
+  },
+  "description": {
+    "ko": "TODO 규칙과 목표, 실패 조건을 중립 문체로 적는다.",
+    "en": "TODO describe the rules, the goal, and the failure condition in neutral prose."
+  },
+  "controls": {
+    "ko": {
+      "primary": "TODO 주 입력이 무엇을 하는지",
+      "keyboard": "TODO 키보드 대체 입력",
+      "restart": "결과 화면을 눌러 다시 시작한다."
+    },
+    "en": {
+      "primary": "TODO what the primary input does",
+      "keyboard": "TODO keyboard alternative",
+      "restart": "Tap the result screen to start again."
+    }
+  },
+  "session": {
+    "typicalSeconds": 90,
+    "maxSeconds": 180,
+    "failureBudget": 3
+  },
+  "display": {
+    "designWidth": 390,
+    "designHeight": 844,
+    "orientation": "portrait",
+    "fit": "letterbox-uniform"
+  },
+  "supportedLocales": ["ko", "en"],
+  "media": {
+    "titleKeyImage": "public/art/title-key.jpg",
+    "visualMedium": "TODO 시각 매체",
+    "audio": "synthesized WebAudio only, no audio files",
+    "screenshots": []
+  },
+  "arcade": {
+    "entry": "entry.mjs",
+    "capabilities": ["pointer", "keyboard"],
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "fit": "letterbox-uniform"
+    },
+    "assets": [
+      { "source": "public/fonts/Galmuri11.woff2", "releasePath": "fonts/Galmuri11.woff2" },
+      { "source": "public/fonts/Galmuri11-Bold.woff2", "releasePath": "fonts/Galmuri11-Bold.woff2" },
+      { "source": "public/fonts/Galmuri14.woff2", "releasePath": "fonts/Galmuri14.woff2" }
+    ]
+  },
+  "source": {
+    "launchpadCommit": "TODO-launchpad-sha"
+  }
+}

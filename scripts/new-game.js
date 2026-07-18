@@ -58,6 +58,7 @@ const ROOT = path.resolve(__dirname, '..')
 
 /** Files that carry the hardcoded identity. */
 const TARGETS = [
+    'game.manifest.json',
     'package.json',
     'package-lock.json',
     'capacitor.config.ts',
