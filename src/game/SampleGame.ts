@@ -25,6 +25,9 @@ export class SampleGame implements GameRuntime {
     private score = 0
     private timeLeft = GAME_SECONDS
     private over = false
+    private elapsed = 0
+    private overText: Text | null = null
+    private restartAt = 0
     private destroyed = false
     private resizeObs: ResizeObserver | null = null
 
@@ -85,11 +88,19 @@ export class SampleGame implements GameRuntime {
         this.target = target
         this.moveTarget()
 
-        let elapsed = 0
+        // 종료 화면에서 화면을 누르면 새 판이 시작되어야 한다. 실제 게임도 같은
+        // 계약을 지켜야 하므로(scripts/smoke.mjs가 실동작으로 검사한다) 예제가
+        // 그 배선을 먼저 보여 준다. 결과를 읽을 시간을 주려고 짧게 보호한다.
+        app.stage.eventMode = 'static'
+        app.stage.hitArea = app.screen
+        app.stage.on('pointerup', () => {
+            if (this.over && performance.now() >= this.restartAt) this.restart()
+        })
+
         app.ticker.add((ticker) => {
             if (this.over) return
-            elapsed += ticker.deltaMS
-            const left = Math.max(0, GAME_SECONDS - elapsed / 1000)
+            this.elapsed += ticker.deltaMS
+            const left = Math.max(0, GAME_SECONDS - this.elapsed / 1000)
             this.timeLeft = left
             if (this.timerText) this.timerText.text = String(Math.ceil(left))
             if (left <= 0) this.endGame()
@@ -119,14 +130,40 @@ export class SampleGame implements GameRuntime {
         if (this.target) this.target.eventMode = 'none'
 
         const overText = new Text({
-            text: 'GAME OVER',
-            style: { fill: 0xff4438, fontSize: 36, fontFamily: 'Galmuri14, monospace' },
+            text: 'GAME OVER\nTAP TO RESTART',
+            style: {
+                fill: 0xff4438,
+                fontSize: 30,
+                align: 'center',
+                fontFamily: 'Galmuri14, monospace',
+            },
         })
         overText.anchor.set(0.5)
         overText.position.set(APP_CONFIG.designWidth / 2, APP_CONFIG.designHeight / 2)
         this.app?.stage.addChild(overText)
+        this.overText = overText
+
+        // 종료 직후의 잔여 탭이 결과 화면을 건너뛰지 않게 한다.
+        this.restartAt = performance.now() + 700
 
         this.callbacks?.onGameOver({ score: this.score, phase: 0 })
+    }
+
+    private restart(): void {
+        if (!this.over) return
+        this.over = false
+        this.elapsed = 0
+        this.score = 0
+        this.timeLeft = GAME_SECONDS
+        if (this.overText) {
+            this.overText.destroy()
+            this.overText = null
+        }
+        if (this.scoreText) this.scoreText.text = `SCORE ${this.score}`
+        if (this.timerText) this.timerText.text = String(GAME_SECONDS)
+        if (this.target) this.target.eventMode = 'static'
+        this.callbacks?.onScoreChange?.(this.score)
+        this.moveTarget()
     }
 
     destroy(): void {
