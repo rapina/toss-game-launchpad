@@ -22,6 +22,7 @@
     "toss:dev": "cross-env VITE_PLATFORM=toss npx granite dev",
     "toss:build": "cross-env VITE_PLATFORM=toss tsc -b && cross-env VITE_PLATFORM=toss npx ait build",
     "smoke": "node scripts/smoke.mjs",
+    "viewport": "node scripts/viewport-smoke.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "new-game": "node scripts/new-game.js"
