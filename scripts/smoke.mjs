@@ -22,34 +22,9 @@ import { join, sep } from 'node:path'
 // 검증 증거를 코드 상태에 바인딩한다: 잠금 게이트(prepare-editorial.mjs)가
 // 같은 방식으로 해시를 재계산해 소스가 바뀐 뒤의 낡은 증거를 거부한다.
 // 서사 소유 자산: 잠금 계약에서 라이카 서사 단계만 추가·수정할 수 있는 경로.
-function isNarrativeAsset(path) {
-    return /(^|[\\/])public[\\/]art[\\/]laika-[^\\/]*$/.test(path.split(sep).join('/'))
-}
-
-function sourceHash(root = '.') {
-    const files = []
-    const walk = (dir) => {
-        for (const entry of readdirSync(dir, { withFileTypes: true })) {
-            const full = join(dir, entry.name)
-            if (entry.isDirectory()) walk(full)
-            else if (entry.isFile()) files.push(full)
-        }
-    }
-    for (const dir of ['src', 'public']) if (existsSync(join(root, dir))) walk(join(root, dir))
-    for (const file of ['index.html', 'package.json', 'vite.config.ts']) if (existsSync(join(root, file))) files.push(join(root, file))
-    const hash = createHash('sha256')
-    // 서사 단계가 추가하는 제작자 일러스트는 게임 소스가 아니다. 해시에 넣으면
-    // 서사 뒤에 검증 증거와 설계 검토가 통째로 무효가 되므로 제외한다.
-    for (const file of files.filter((path) => !isNarrativeAsset(path)).sort()) {
-        hash.update(file)
-        hash.update('\n')
-        hash.update(readFileSync(file))
-        hash.update('\n')
-    }
-    return hash.digest('hex')
-}
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright-core'
+import { sourceHash } from './source-hash.mjs'
 
 // 4173은 아케이드 로컬 서버(arcade/scripts/serve.mjs)가 쓴다. 포트가 겹치면
 // 게이트 스모크가 남의 서버에 붙어 위양성으로 실패한다.

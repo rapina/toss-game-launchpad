@@ -27,6 +27,7 @@
  */
 import { spawn } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { sourceHash } from './source-hash.mjs'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium } from 'playwright-core'
 
@@ -302,6 +303,10 @@ try {
 
     await browser.close()
     report.pass = [...report.geometry, ...report.gameOver].every((r) => r.pass)
+    // 소스 해시를 보고서에 넣어 두면, 측정 수치가 우연히 같은 순수 렌더 변경에도
+    // 캡처가 다시 써진다. 이것이 없을 때 렌더만 바뀐 사이클에서 커밋된 뷰포트
+    // 이미지가 조용히 낡은 채로 남았다(연번 16에서 실제로 발생).
+    report.sourceHash = sourceHash()
     const json = JSON.stringify(report, null, 2)
     // 배경 애니메이션 때문에 캡처 바이트는 실행마다 달라진다. 측정 결과가
     // 실제로 바뀔 때만 증거를 다시 써야 게시 게이트의 저장소 청결 검사를
