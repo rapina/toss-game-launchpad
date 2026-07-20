@@ -1,3 +1,8 @@
+// 아케이드 포털은 'unsafe-eval' 없는 CSP로 서빙된다. PixiJS는 셰이더 프로그램을
+// eval 없이 만들기 위해 이 모듈이 필요하다. 이것이 없으면 포털에서만 부팅이 실패하고
+// 로컬 단독 실행은 CSP가 없어 멀쩡하므로, 게임 쪽 검증이 전부 초록인 채로 공개된다.
+// maejil·violet·grainsplit·repose에서 네 번 되풀이된 뒤 템플릿으로 올렸다.
+import 'pixi.js/unsafe-eval'
 import { SampleGame } from './game/SampleGame'
 import { STORAGE_PREFIX } from './appConfig'
 import './index.css'

@@ -20,7 +20,12 @@ const safe = (value) => {
 }
 if (typeof manifest.slug !== 'string' || !manifest.slug || manifest.schemaVersion !== 1) throw new Error('[build-release] manifest identity mismatch')
 
-for (const source of manifest.media.makerIllustration.sources) {
+// 제작자 일러스트는 잠금 뒤 서사 단계에서만 생기는 자산이다. 잠금 게이트가 요구하는
+// 포털 CSP 검사는 dist-arcade/release.json을 필요로 하므로, 여기서 일러스트를 필수로
+// 두면 "잠그려면 CSP 검사가 필요하고, CSP 검사를 하려면 잠금 뒤에나 생기는 필드가
+// 필요한" 순환이 생긴다. 공개 계약은 scripts/lib/publication.mjs가 게시 시점에 따로
+// 강제하므로, 빌드 단계에서는 없으면 없는 대로 넘어간다.
+for (const source of manifest.media?.makerIllustration?.sources ?? []) {
     const target = join(dist, safe(source.releasePath))
     mkdirSync(dirname(target), { recursive: true })
     copyFileSync(join(root, safe(source.path)), target)
@@ -42,18 +47,20 @@ const assets = filesIn(dist).map((path) => ({ path, relativePath: relative(dist,
 const bytes = assets.reduce((sum, file) => sum + file.bytes, 0)
 const codeGzipBytes = assets.filter((file) => /\.m?js$/.test(file.path)).reduce((sum, file) => sum + gzipSync(readFileSync(join(dist, file.path))).byteLength, 0)
 if (bytes > 16 * 1024 * 1024 || assets.some((file) => file.bytes > 4 * 1024 * 1024) || codeGzipBytes > 1536 * 1024) throw new Error('[build-release] release budget exceeded')
-const illustration = manifest.media.makerIllustration
-const makerIllustration = { ...illustration, sources: illustration.sources.map((source) => {
-    const file = assets.find((candidate) => candidate.path === source.releasePath)
-    if (!file) throw new Error(`[build-release] missing maker illustration: ${source.releasePath}`)
-    return { path: source.releasePath, width: source.width, height: source.height, type: source.type, sha256: file.sha256 }
-}) }
+const illustration = manifest.media?.makerIllustration ?? null
+const makerIllustration = illustration
+    ? { ...illustration, sources: illustration.sources.map((source) => {
+        const file = assets.find((candidate) => candidate.path === source.releasePath)
+        if (!file) throw new Error(`[build-release] missing maker illustration: ${source.releasePath}`)
+        return { path: source.releasePath, width: source.width, height: source.height, type: source.type, sha256: file.sha256 }
+    }) }
+    : null
 const payload = {
     contractVersion: 1, gameId: manifest.slug, slug: manifest.slug, version: manifest.version, releaseSha,
     launchpadSha: manifest.source.launchpadCommit, entry: manifest.arcade.entry,
     style: assets.find((file) => file.path.endsWith('.css'))?.path ?? null,
     files: assets.length, bytes, codeGzipBytes, capabilities: manifest.arcade.capabilities,
-    viewport: manifest.arcade.viewport, media: { makerIllustration }, assets,
+    viewport: manifest.arcade.viewport, media: makerIllustration ? { makerIllustration } : {}, assets,
 }
 writeFileSync(join(dist, 'release.json'), `${JSON.stringify({ ...payload, manifestSha256: sha256(JSON.stringify(payload)) }, null, 2)}\n`)
 console.log(JSON.stringify({ files: assets.length, bytes, codeGzipBytes, releaseSha }, null, 2))

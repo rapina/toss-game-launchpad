@@ -33,11 +33,16 @@ for (const file of release.assets) {
 }
 if (release.files !== release.assets.length || release.bytes !== bytes || release.codeGzipBytes !== codeGzipBytes) fail('release totals mismatch')
 if (!declared.includes(release.entry) || (release.style && !declared.includes(release.style))) fail('entry or style missing')
-const expected = manifest.media.makerIllustration
-const actualMaker = release.media.makerIllustration
-if (JSON.stringify(actualMaker.focalPoint) !== JSON.stringify(expected.focalPoint) || JSON.stringify(actualMaker.alt) !== JSON.stringify(expected.alt)) fail('maker metadata mismatch')
-for (const [index, source] of expected.sources.entries()) {
-    const built = actualMaker.sources[index]
-    if (!built || built.path !== source.releasePath || built.width !== source.width || built.height !== source.height || built.type !== 'image/jpeg') fail('maker source mismatch')
+// 잠금 전에는 제작자 일러스트가 아직 없다(서사 단계 자산). 있으면 검사하고, 없으면
+// 넘어간다. 공개 시점의 존재 강제는 scripts/lib/publication.mjs가 따로 한다.
+const expected = manifest.media?.makerIllustration ?? null
+const actualMaker = release.media?.makerIllustration ?? null
+if (expected || actualMaker) {
+    if (!expected || !actualMaker) fail('maker illustration present on only one side')
+    if (JSON.stringify(actualMaker.focalPoint) !== JSON.stringify(expected.focalPoint) || JSON.stringify(actualMaker.alt) !== JSON.stringify(expected.alt)) fail('maker metadata mismatch')
+    for (const [index, source] of expected.sources.entries()) {
+        const built = actualMaker.sources[index]
+        if (!built || built.path !== source.releasePath || built.width !== source.width || built.height !== source.height || built.type !== 'image/jpeg') fail('maker source mismatch')
+    }
 }
 console.log(`Verified ${release.files} immutable files (${release.bytes} bytes, ${release.codeGzipBytes} JS gzip bytes)`)
