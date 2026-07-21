@@ -61,9 +61,9 @@ export async function launchBrowser() {
     }
 }
 
-function makeNoise(profile, seed) {
+export function makeNoise(profile, seed) {
     const random = seededRandom(seed)
-    const drawn = { angleDeg: [], magnitude: [], reactionMs: [] }
+    const drawn = { angleDeg: [], magnitude: [], reactionMs: [], timingMs: [] }
     return {
         drawn,
         /** 각도 오차(도). 프로필의 angleSigmaDeg를 따른다. */
@@ -85,11 +85,21 @@ function makeNoise(profile, seed) {
             drawn.reactionMs.push(value)
             return value
         },
+        /**
+         * 타이밍 오차(ms). 리듬/박자 게임용. 사람은 봉우리(오차 0)를 노리지만
+         * 실제로는 N(0, timingSigmaMs)만큼 빗나간 지점에서 손이 떨어진다. 이 값이
+         * 곧 판정을 가르는 오차이므로 자체 점검이 이 축을 본다.
+         */
+        timingMs() {
+            const value = gaussian(random) * (profile.timingSigmaMs ?? 0)
+            drawn.timingMs.push(value)
+            return value
+        },
         random,
     }
 }
 
-function stats(values) {
+export function stats(values) {
     if (values.length === 0) return null
     const mean = values.reduce((sum, value) => sum + value, 0) / values.length
     const variance = values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length
@@ -100,20 +110,22 @@ function stats(values) {
  * 하네스 자체 점검. 주입하라고 지정한 오차와 실제로 뽑힌 분산을 견준다.
  * 어긋나면 그 프로필의 관측치로 판정하면 안 된다.
  */
-function selfCheck(profile, drawn) {
+export function selfCheck(profile, drawn) {
     const report = {
         profile: profile.name,
         angleDeg: { specified: profile.angleSigmaDeg ?? 0, observed: stats(drawn.angleDeg) },
         magnitude: { specified: profile.magnitudeSigma ?? 0, observed: stats(drawn.magnitude) },
         reactionMs: { specified: profile.reactionMs ?? [200, 40], observed: stats(drawn.reactionMs) },
+        timingMs: { specified: profile.timingSigmaMs ?? 0, observed: stats(drawn.timingMs ?? []) },
     }
     const ratio = (observed, specified) =>
         !observed || !specified ? null : +(observed.sd / specified).toFixed(2)
     report.angleRatio = ratio(report.angleDeg.observed, report.angleDeg.specified)
     report.magnitudeRatio = ratio(report.magnitude.observed, report.magnitude.specified)
+    report.timingRatio = ratio(report.timingMs.observed, report.timingMs.specified)
     // 표본이 작으므로 폭을 넉넉히 둔다. 눌린 경우(0.5 미만)를 잡는 것이 목적이다.
     const within = (value) => value === null || (value >= 0.5 && value <= 1.8)
-    report.sound = within(report.angleRatio) && within(report.magnitudeRatio)
+    report.sound = within(report.angleRatio) && within(report.magnitudeRatio) && within(report.timingRatio)
     return report
 }
 

@@ -28,3 +28,6 @@ android/play-service-account.json
 # Arcade release & QA artifacts
 dist-arcade
 *.ait
+
+# 지구 평가 증거물 (qa 산출물과 동급, 커밋하지 않음)
+earth-review/
