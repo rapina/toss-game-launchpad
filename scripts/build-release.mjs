@@ -46,7 +46,7 @@ const assets = filesIn(dist).map((path) => ({ path, relativePath: relative(dist,
     .map(({ path, relativePath }) => { const content = readFileSync(path); return { path: relativePath, bytes: content.byteLength, sha256: sha256(content) } })
 const bytes = assets.reduce((sum, file) => sum + file.bytes, 0)
 const codeGzipBytes = assets.filter((file) => /\.m?js$/.test(file.path)).reduce((sum, file) => sum + gzipSync(readFileSync(join(dist, file.path))).byteLength, 0)
-if (bytes > 16 * 1024 * 1024 || assets.some((file) => file.bytes > 4 * 1024 * 1024) || codeGzipBytes > 1536 * 1024) throw new Error('[build-release] release budget exceeded')
+if (bytes > 16 * 1024 * 1024 || assets.some((file) => file.bytes > 4 * 1024 * 1024) || codeGzipBytes > 520 * 1024) throw new Error('[build-release] release budget exceeded')
 const illustration = manifest.media?.makerIllustration ?? null
 const makerIllustration = illustration
     ? { ...illustration, sources: illustration.sources.map((source) => {
